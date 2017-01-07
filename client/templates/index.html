@@ -1,0 +1,19 @@
+<!DOCTYPE html>
+<html>
+  <head>
+    <meta charset="utf-8" />
+    <title>WebSocket Test</title>
+    <script language="javascript" type="text/javascript">
+      var ws = new WebSocket('ws://' + window.location.host + '/ws');
+      // Income message handler
+      ws.onmessage = function(event) {
+        console.log(event.data)
+      };
+      
+    </script>
+  </head>
+  <body>
+    <h2>WebSocket Test</h2>
+    <div id="output"></div>
+  </body>
+</html>

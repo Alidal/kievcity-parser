@@ -1,3 +1,4 @@
+import json
 import jinja2
 import asyncio
 import aiohttp_jinja2
@@ -5,7 +6,7 @@ import aiohttp_jinja2
 from aiohttp import web, WSMsgType
 from server.scraper import Scraper
 
-URL = 'https://gb.kievcity.gov.ua/projects/'
+URL = 'https://gb.kievcity.gov.ua/projects/show/{}'
 
 loop = asyncio.get_event_loop()
 
@@ -29,7 +30,9 @@ async def web_socket_data(request):
     if ws not in request.app['websockets']:
         request.app['websockets'].append(ws)
 
-    print("Conn established")
+    # Set start state
+    ws.send_str(json.dumps(Scraper().cache))
+
     async for msg in ws:
         if msg.type == WSMsgType.TEXT:
             if msg.data == 'close':

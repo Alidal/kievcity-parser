@@ -1,52 +1,69 @@
 import json
 import asyncio
 import aiohttp
-from collections import namedtuple
 from bs4 import BeautifulSoup
 
-# It will cache all results to avoid pulling new information for every new user
-CACHED_RESULTS = None
 
-Project = namedtuple('Project', ['title', 'description', 'author', 'category',
-                                 'goal', 'votes', 'link'])
+async def get(url):
+    response = await aiohttp.request('GET', url)
+    if response.status == 200:
+        return (await response.text())
+    # If response code == 500
+    response.close()
+    # Return empty string for BeautifulSoup
+    return ""
 
-async def get(url, params):
-    response = await aiohttp.request('GET', url, params=params)
-    return (await response.text())
+
+class Singleton(type):
+    _instances = {}
+
+    def __call__(cls, *args, **kwargs):
+        if cls not in cls._instances:
+            cls._instances[cls] = super(Singleton, cls).__call__(*args, **kwargs)
+        return cls._instances[cls]
 
 
-class Scraper:
-    data = []
+class Scraper(metaclass=Singleton):
+    def __init__(self, *args, **kwargs):
+        # Cache for current state for not pulling new data for every new
+        # WebSocket
+        self.data = []
+        self.cache = []
+        # All possible project ids including not active
+        self.active_projects_ids = list(range(700))
 
-    async def get_page(self, url, page_number):
-        page = await get(url, params={'type': 3, 'page': page_number})
+    async def get_page(self, url, project_number):
+        page = await get(url.format(project_number))
         soup = BeautifulSoup(page, 'html.parser')
-        projects_list = soup.find_all(class_='project-card')
-        cur_proj = {}
-        if not projects_list:
+        # Get only active projects. If project is inactive or out of range of
+        # possible ids - delete it from list
+        if not page or soup.find(class_='status').string != 'На голосуванні':
+            self.active_projects_ids.remove(project_number)
             return
 
-        for project in projects_list:
-            cur_proj = {
-                'category': project.a.span.string,
-                'link': project.a.get('href'),
-                'title': project.div.h1.a.string,
-                'description': project.div.p.string,
-                'author': project.div.select('.author')[0].select('.person')[0].span.string,
-                'goal': project.div.select('.budget')[0].select('.sum')[0].string,
-                'votes': project.div.select('.voted')[0].select('.total')[0].string,
-            }
-            self.data.append(cur_proj)
+        cur_proj = {
+            'author': soup.find(class_='author-presentation').get_text(strip=True),
+            'category': soup.find(class_='category-tag').span.string,
+            'description': soup.find(class_='desc').p.get_text(strip=True)[:300] + '...',
+            'district': soup.find(class_='props').div.get_text().split()[3],
+            'budget': int(''.join(filter(str.isdigit, soup.find(class_='amount').strong.get_text()))),
+            'link': url.format(project_number),
+            'title': soup.find('h1').get_text(strip=True)[:-14],
+            'votes': soup.find(class_='supported').strong.get_text(),
+        }
+        self.data.append(cur_proj)
 
     async def scrape_website(self, url, app):
-        global CACHED_RESULTS
         while True:
-            # type=3 - 'На голосуваннi' state
-            done, pending = await asyncio.wait([self.get_page(url, page_number)
-                                               for page_number in range(50)])
-            self.data = sorted(self.data, key=lambda item: int(item['votes']))
+            self.cache = self.data
+            self.data = []
+            done, pending = await asyncio.wait([self.get_page(url, project_number)
+                                               for project_number in self.active_projects_ids])
 
-            CACHED_RESULTS = self.data
+            # Update cache only if all projects has been successfully parsed
+            if self.data:
+                self.cache = sorted(self.data, reverse=True,
+                                    key=lambda item: int(item['votes']))
+
             for ws in app['websockets']:
-                ws.send_str(json.dumps(self.data))
-            asyncio.sleep(10)
+                ws.send_str(json.dumps(self.cache))

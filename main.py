@@ -62,4 +62,4 @@ async def init():
 
 if __name__ == "__main__":
     app = loop.run_until_complete(init())
-    web.run_app(app)
+    web.run_app(app, port=80)

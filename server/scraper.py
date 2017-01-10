@@ -11,7 +11,7 @@ async def get(url):
     # If response code == 500
     response.close()
     # Return empty string for BeautifulSoup
-    return ""
+    return "500"
 
 
 class Singleton(type):
@@ -27,7 +27,7 @@ class Scraper(metaclass=Singleton):
     def __init__(self, *args, **kwargs):
         # Cache for current state for not pulling new data for every new
         # WebSocket
-        self.data = []
+        self.current_data = []
         self.cache = []
         # All possible project ids including not active
         self.active_projects_ids = list(range(700))
@@ -37,7 +37,7 @@ class Scraper(metaclass=Singleton):
         soup = BeautifulSoup(page, 'html.parser')
         # Get only active projects. If project is inactive or out of range of
         # possible ids - delete it from list
-        if not page or soup.find(class_='status').string != 'На голосуванні':
+        if page == "500" or soup.find(class_='status').string != 'На голосуванні':
             self.active_projects_ids.remove(project_number)
             return
 
@@ -51,19 +51,23 @@ class Scraper(metaclass=Singleton):
             'title': soup.find('h1').get_text(strip=True)[:-14],
             'votes': soup.find(class_='supported').strong.get_text(),
         }
-        self.data.append(cur_proj)
+        self.current_data.append(cur_proj)
 
     async def scrape_website(self, url, app):
         while True:
-            self.cache = self.data
-            self.data = []
+            self.current_data = []
             done, pending = await asyncio.wait([self.get_page(url, project_number)
                                                for project_number in self.active_projects_ids])
 
             # Update cache only if all projects has been successfully parsed
-            if self.data:
-                self.cache = sorted(self.data, reverse=True,
+            if self.current_data:
+                self.cache = sorted(self.current_data, reverse=True,
                                     key=lambda item: int(item['votes']))
 
             for ws in app['websockets']:
-                ws.send_str(json.dumps(self.cache))
+                try:
+                    ws.send_str(json.dumps(self.cache))
+                except RuntimeError:
+                    # Hack to handle closing of WebSockets
+                    await ws.close()
+                    app['websockets'].remove(ws)

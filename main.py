@@ -24,7 +24,7 @@ async def start_background_tasks(app):
     app['scraper'] = app.loop.create_task(Scraper().scrape_website(URL, app))
 
 
-async def web_socket_data(request):
+async def websocket_handler(request):
     ws = web.WebSocketResponse()
     await ws.prepare(request)
     if ws not in request.app['websockets']:
@@ -32,15 +32,6 @@ async def web_socket_data(request):
 
     # Set start state
     ws.send_str(json.dumps(Scraper().cache))
-
-    async for msg in ws:
-        if msg.type == WSMsgType.TEXT:
-            if msg.data == 'close':
-                await ws.close()
-                request.app['websockets'].remove(ws)
-        elif msg.type == WSMsgType.ERROR:
-            print('ws connection closed with exception %s' %
-                  ws.exception())
     return ws
 
 
@@ -52,7 +43,7 @@ async def init():
     app.on_startup.append(start_background_tasks)
     app.on_shutdown.append(on_shutdown)
     app.router.add_get('/', index)
-    app.router.add_get('/ws', web_socket_data)
+    app.router.add_get('/ws', websocket_handler)
     app.router.add_static('/static', './client/static')
 
     aiohttp_jinja2.setup(app,

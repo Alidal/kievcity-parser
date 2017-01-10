@@ -42,9 +42,9 @@
           // Check for 50 million UAH limit to visually divide all projects before and after that limit
           sumBudget += projects[i].budget
           if (highlightedProjectsList.indexOf(projects[i].link) >= 0) {
-            cardClass = 'card hoverable green accent-3'
+            cardClass = 'card hoverable green lighten-4'
           } else if (sumBudget <= 50000000) {
-            cardClass = 'card hoverable green lighten-5'
+            cardClass = 'card z-depth-2 green lighten-5'
           } else {
             cardClass = 'card hoverable blue-grey lighten-5'
           }
@@ -82,7 +82,7 @@
   <body>
     <header>
       <div class="container">
-        <img src="https://gb.kievcity.gov.ua/assets/app/img/logo.svg" alt="Logo" style="color:white;" />
+        <!--<img src="https://gb.kievcity.gov.ua/assets/app/img/logo.svg" alt="Logo" style="color:white;" />--!>
       </div>
     </header>
     <div class="container" id="projects-list"></div>

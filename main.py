@@ -1,4 +1,3 @@
-import json
 import jinja2
 import asyncio
 import aiohttp_jinja2
@@ -27,20 +26,16 @@ async def start_background_tasks(app):
 async def websocket_handler(request):
     ws = web.WebSocketResponse()
     await ws.prepare(request)
-    if ws not in request.app['websockets']:
-        request.app['websockets'].append(ws)
+
+    request.app['websockets'].append(ws)
+    # Set start state
+    ws.send_json(Scraper().cache)
 
     async for msg in ws:
-        if msg.type == WSMsgType.TEXT:
-            if msg.data == 'close':
-                await ws.close()
-                request.app['websockets'].remove(ws)
-        elif msg.type == WSMsgType.ERROR:
-            print('ws connection closed with exception %s' %
-                  ws.exception())
+        print(msg.type)
 
-    # Set start state
-    ws.send_str(json.dumps(Scraper().cache))
+    await ws.close()
+    request.app['websockets'].remove(ws)
     return ws
 
 

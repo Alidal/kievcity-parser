@@ -30,6 +30,15 @@ async def websocket_handler(request):
     if ws not in request.app['websockets']:
         request.app['websockets'].append(ws)
 
+    async for msg in ws:
+        if msg.type == WSMsgType.TEXT:
+            if msg.data == 'close':
+                await ws.close()
+                request.app['websockets'].remove(ws)
+        elif msg.type == WSMsgType.ERROR:
+            print('ws connection closed with exception %s' %
+                  ws.exception())
+
     # Set start state
     ws.send_str(json.dumps(Scraper().cache))
     return ws

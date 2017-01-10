@@ -60,9 +60,10 @@ class Scraper(metaclass=Singleton):
                                                for project_number in self.active_projects_ids])
 
             # Update cache only if all projects has been successfully parsed
-            if self.current_data:
+            if self.current_data and len(self.cache) <= len(self.current_data):
                 self.cache = sorted(self.current_data, reverse=True,
                                     key=lambda item: int(item['votes']))
+                print('Got {} fresh results.'.format(len(self.cache)))
 
             for ws in app['websockets']:
                 try:

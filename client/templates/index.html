@@ -23,26 +23,39 @@
         return x.toString().replace(/\B(?=(\d{3})+(?!\d))/g, ",");
       }
 
+      highlightedProjectsList = [
+        'https://gb.kievcity.gov.ua/projects/show/573',
+        'https://gb.kievcity.gov.ua/projects/show/486',
+        'https://gb.kievcity.gov.ua/projects/show/344',
+        'https://gb.kievcity.gov.ua/projects/show/424',
+        'https://gb.kievcity.gov.ua/projects/show/336'
+      ]
+
       var ws = new WebSocket('ws://' + window.location.host + '/ws');
       ws.onmessage = function(event) {
-        $('.container').empty()
+        $('#projects-list').empty()
+        var projects = JSON.parse(event.data)
         var sumBudget = 0
-        var projects = JSON.parse(event.data);
+        var cardClass = 'card green lighten-5'
 
         for (var i = 0; i < projects.length; i++) {
           // Check for 50 million UAH limit to visually divide all projects before and after that limit
           sumBudget += projects[i].budget
-          if (sumBudget - projects[i].budget < 50000000 && sumBudget > 50000000) {
-            $('.container').append('<hr>')
+          if (highlightedProjectsList.indexOf(projects[i].link) >= 0) {
+            cardClass = 'card hoverable green accent-3'
+          } else if (sumBudget <= 50000000) {
+            cardClass = 'card hoverable green lighten-5'
+          } else {
+            cardClass = 'card hoverable blue-grey lighten-5'
           }
 
           var column = $('<div>', {class: 'col-sm-12 col-md-4'});
-          var card = $('<div>', {class: 'card lighten-5'});
+          var card = $('<div>', {class: cardClass});
           var card_content = $('<div>', {class: 'card-content black-text'});
 
-          var title = $('<div>', {class: 'title'}).text(projects[i].title)
+          var title = $('<div>', {class: 'title'}).text(projects[i].title);
           var description = $('<div>', {class: 'fixed-height-description'});
-          description.append('<p>'+ projects[i].description +'</p><hr>')
+          description.append('<p>'+ projects[i].description +'</p><br>')
           description.append('<p><b>Бюджет</b>: ' + numberWithCommas(projects[i].budget) + ' грн</p>')
           description.append('<p><b>Район</b>: ' + projects[i].district+ '</p>')
           description.append('<p><b>Автор</b>: ' + projects[i].author + '</p>')
@@ -52,20 +65,25 @@
           card_content.append(description)
 
           var card_action = $('<div>', {class: 'card-action'});
-          card_action.append($('<a></a>', {class: 'blue-text darken-4-text',
-                                           href: projects[i].link,
-                                           target: "_blank"}).text('Голосовать ('+ projects[i].votes +')'))
+          card_action.append($('<a>', {class: 'blue-text darken-4-text',
+                                       href: projects[i].link,
+                                       target: "_blank"}).text('Голосовать ('+ projects[i].votes +')'))
 
           card.append(card_content)
           card.append(card_action)
           column.append(card)
-          $('.container').append(column)
+          $('#projects-list').append(column)
         }
       };
 
     </script>
   </head>
   <body>
-    <div class="container"></div>
+    <header>
+      <div class="container">
+        <img src="https://gb.kievcity.gov.ua/assets/app/img/logo.svg" alt="Logo" style="color:white;" />
+      </div>
+    </header>
+    <div class="container" id="projects-list"></div>
   </body>
 </html>

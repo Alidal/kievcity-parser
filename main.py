@@ -1,8 +1,9 @@
 import jinja2
 import asyncio
+import argparse
 import aiohttp_jinja2
 
-from aiohttp import web, WSMsgType
+from aiohttp import web
 from server.scraper import Scraper
 
 URL = 'https://gb.kievcity.gov.ua/projects/show/{}'
@@ -20,7 +21,10 @@ async def on_shutdown(app):
 
 
 async def start_background_tasks(app):
-    app['scraper'] = app.loop.create_task(Scraper().scrape_website(URL, app))
+    scraper_instance = Scraper()
+    app['scraper_instance'] = scraper_instance
+    app['scraper'] = app.loop.create_task(scraper_instance.scrape_website(URL,
+                                                                          app))
 
 
 async def websocket_handler(request):
@@ -29,19 +33,21 @@ async def websocket_handler(request):
 
     request.app['websockets'].append(ws)
     # Set start state
-    ws.send_json(Scraper().cache)
+    ws.send_json(request.app['scraper_instance'].cache)
 
+    # We don't need to handle any messages
+    # from front-end part, so we just ignore it
     async for msg in ws:
-        print(msg.type)
+        pass
 
     await ws.close()
     request.app['websockets'].remove(ws)
     return ws
 
 
-async def init():
+async def init_app():
     app = web.Application(loop=loop)
-    # We will handle websockets in app
+    # Add handler for websockets
     app['websockets'] = []
 
     app.on_startup.append(start_background_tasks)
@@ -55,6 +61,11 @@ async def init():
     return app
 
 
+parser = argparse.ArgumentParser(description='Parse set of URLs.')
+parser.add_argument('--port', default=8080, type=int)
+
 if __name__ == "__main__":
-    app = loop.run_until_complete(init())
-    web.run_app(app, port=80)
+    args = parser.parse_args()
+
+    app = loop.run_until_complete(init_app())
+    web.run_app(app, port=args.port)

@@ -1,0 +1,16 @@
+.fixed-height-description {
+    max-height: 250px;
+    min-height: 250px;
+    font-size: 12px;
+}
+
+.title {
+    margin: 10px;
+    display: flex;
+    text-align: center;
+    align-items: center; /* align vertical */
+    max-height: 90px;
+    min-height: 90px;
+    font-size: 20px;
+    line-height: 20px !important;
+}

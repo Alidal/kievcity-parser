@@ -4,6 +4,9 @@ from copy import copy
 from bs4 import BeautifulSoup
 
 
+KPI_PROJECTS_IDS = [573, 486, 344, 424, 336]
+
+
 async def get(url):
     try:
         response = await aiohttp.request('GET', url)
@@ -20,6 +23,12 @@ class Scraper:
         # All possible project IDs, including not active
         self.active_projects_ids = list(range(700))
 
+    def set_top(self):
+        cur_sum = 0
+        for i, _ in enumerate(self.cache):
+            cur_sum += self.cache[i]['budget']
+            self.cache[i]['is_top'] = cur_sum <= 50000000
+
     async def scrape_website(self, url, app):
         while True:
             self.current_data = []
@@ -34,13 +43,15 @@ class Scraper:
             # Update cache only if all projects has been successfully parsed
             self.cache = sorted(self.current_data, reverse=True,
                                 key=lambda item: int(item['votes']))
+            self.set_top()
             print('Got {} fresh results.'.format(len(self.cache)))
 
             for ws in app['websockets']:
                 ws.send_json(self.cache)
 
     async def get_page(self, url, project_id):
-        page, status = await get(url.format(project_id))
+        project_url = url.format(project_id)
+        page, status = await get(project_url)
         if status not in [200, 500]:
             return
         self.left_ids.remove(project_id)
@@ -54,13 +65,14 @@ class Scraper:
 
         cur_proj = {
             'author': soup.find(class_='author-presentation').get_text(strip=True),
+            'budget': int(''.join(filter(str.isdigit, soup.find(class_='amount').strong.get_text()))),
             'category': soup.find(class_='category-tag').span.string,
             'description': soup.find(class_='desc').p.get_text(strip=True)[:300] + '...',
             'district': soup.find(class_='props').div.get_text().split()[3],
             'budget': int(''.join(filter(str.isdigit, soup.find(class_='amount').strong.get_text()))),
-            'link': url.format(project_id),
+            'url': project_url,
             'title': soup.find('h1').get_text(strip=True)[:-14],
             'votes': soup.find(class_='supported').strong.get_text(),
-            'project_id': project_id,
+            'is_kpi': project_id in KPI_PROJECTS_IDS,
         }
         self.current_data.append(cur_proj)

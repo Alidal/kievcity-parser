@@ -1,0 +1,37 @@
+{
+  "name": "kievcity-parser",
+  "version": "1.0.0",
+  "description": "",
+  "main": "index.js",
+  "scripts": {
+    "start": "webpack-dev-server",
+    "production": "webpack -p",
+    "watch": "webpack --watch"
+  },
+  "repository": {
+    "type": "git",
+    "url": "git+https://github.com/Alidal/kievcity-parser.git"
+  },
+  "author": "Vlad Sydorenko <vladyslav.sydorenko@gmail.com>",
+  "license": "ISC",
+  "bugs": {
+    "url": "https://github.com/Alidal/kievcity-parser/issues"
+  },
+  "homepage": "https://github.com/Alidal/kievcity-parser#readme",
+  "dependencies": {
+    "materialize-css": "^0.97.8",
+    "react": "^15.4.2",
+    "react-dom": "^15.4.2"
+  },
+  "devDependencies": {
+    "babel-core": "^6.22.1",
+    "babel-loader": "^6.2.10",
+    "babel-preset-es2015": "^6.22.0",
+    "babel-preset-react": "^6.22.0",
+    "css-loader": "^0.26.1",
+    "html-webpack-plugin": "^2.26.0",
+    "style-loader": "^0.13.1",
+    "webpack": "^1.14.0",
+    "webpack-dev-server": "^1.16.2"
+  }
+}

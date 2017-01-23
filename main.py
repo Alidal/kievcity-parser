@@ -37,7 +37,7 @@ async def websocket_handler(request):
 
     # We don't need to handle any messages
     # from front-end part, so we just ignore it
-    async for msg in ws:
+    async for _ in ws:
         pass
 
     await ws.close()
@@ -54,10 +54,10 @@ async def init_app():
     app.on_shutdown.append(on_shutdown)
     app.router.add_get('/', index)
     app.router.add_get('/ws', websocket_handler)
-    app.router.add_static('/static', './client/static')
+    app.router.add_static('/static', './client/dist')
 
     aiohttp_jinja2.setup(app,
-                         loader=jinja2.FileSystemLoader('./client/templates'))
+                         loader=jinja2.FileSystemLoader('./client/dist'))
     return app
 
 
